@@ -152,6 +152,11 @@ properties:
       tag: cc
     db_scheme: mysql
     port: 3306
+  cephbroker:
+    service-id: '2c6ad726-a4c5-4a77-9dca-858d37a5a98d'
+    plan-name: 'default'
+    plan-id: '3f65e873-341c-4856-baf6-0e996b289944'
+    plan-desc: 'ceph filesystem'
   cf-usb:
     broker:
       username: broker-admin
@@ -266,6 +271,13 @@ properties:
     user: nats
   nfs_server:
     address: 0.0.0.3
+  nfsbroker:
+    db_driver: 'mysql'
+    db_username: 'nfsvolume'
+    db_port: 3306
+    db_name: 'nfsvolume'
+    service_name: 'persi-nfs'
+    service_id: '20e22be2-a4fb-4b17-a5ef-0c9dba8bdc74'
   router:
     enable_ssl: true
     extra_headers_to_log: null

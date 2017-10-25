@@ -101,6 +101,12 @@ mysql-release:
 usb-release:
 	make/bosh-release src/cf-usb/cf-usb-release
 
+ceph-release:
+	BOSH_RELEASE_NAME=cephfs make/bosh-release src/cephfs-bosh-release
+
+nfs-volume-release:
+	make/bosh-release src/nfs-volume-release
+
 cflinuxfs2-release:
 	make/bosh-release src/cflinuxfs2-release
 
@@ -164,6 +170,8 @@ releases: \
 	garden-release \
 	mysql-release \
 	usb-release \
+	ceph-release \
+	nfs-volume-release \
 	cflinuxfs2-release \
 	cf-opensuse42-release \
 	cf-sle12-release \
