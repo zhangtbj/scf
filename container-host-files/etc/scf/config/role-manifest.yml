@@ -95,6 +95,55 @@ roles:
     healthcheck:
       readiness:
         url: http://container-ip:8080/health
+- name: consul
+  scripts:
+  - scripts/patches/consul_no_edit_resolv_conf.sh
+  - scripts/forward_logfiles.sh
+  jobs:
+  - name: global-properties # needs to be first so images use it for processing monit templates
+    release_name: scf-helper
+  - name: consul
+    release_name: consul
+    provides:
+      consul_servers:
+        as: consul_leaders
+    consumes:
+      consul_servers:
+        from: consul_leaders
+  processes:
+  - name: consul_server
+  - name: metron_agent
+  tags: [indexed]
+  run:
+    scaling:
+      min: 1
+      max: 3
+      ha: 3
+      must_be_odd: true
+    memory: 256
+    virtual-cpus: 1
+    exposed-ports:
+    - name: consul
+      external: 8500
+      internal: 8500
+      protocol: TCP
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+            - key: skiff-role-name
+              operator: In
+              values: [ consul ]
+  configuration:
+    templates:
+      properties.consul.leave_on_terminate: true
+      properties.consul.ssl_ca: ((INTERNAL_CA_CERT))
+      properties.consul.ssl_cert: ((CONSUL_SERVER_CERT))
+      properties.consul.ssl_key: ((CONSUL_SERVER_KEY))
+
 - name: nats
   environment_scripts:
   - scripts/configure-HA-hosts.sh
@@ -1606,6 +1655,24 @@ configuration:
     default: 2
     description: "'version' attribute in the /v2/info endpoint"
     required: true
+  - name: CONSUL_SERVER_CERT
+    secret: true
+    generator:
+      id: consul_server_cert
+      type: Certificate
+      value_type: certificate
+      subject_names:
+      - "*.consul-set"
+    description: PEM-encoded server certificate
+    required: true
+  - name: CONSUL_SERVER_KEY
+    secret: true
+    generator:
+      id: consul_server_cert
+      type: Certificate
+      value_type: private_key
+    description: PEM-encoded server key
+    required: true
   - name: DB_ENCRYPTION_KEY
     secret: true
     immutable: true
@@ -2286,7 +2353,7 @@ configuration:
     required: true
   templates:
     az: '"((KUBE_AZ))"'
-    id: ((#KUBE_COMPONENT_NAME))((KUBE_COMPONENT_NAME))((#KUBE_COMPONENT_INDEX))-((KUBE_COMPONENT_INDEX))((/KUBE_COMPONENT_INDEX))((/KUBE_COMPONENT_NAME))((^KUBE_COMPONENT_NAME))((HOSTNAME))((/KUBE_COMPONENT_NAME))
+    # id: see configgin, from Kubernetes pod.metadata.uid
     index: ((KUBE_COMPONENT_INDEX))((^KUBE_COMPONENT_INDEX))0((/KUBE_COMPONENT_INDEX))
     ip: '"((IP_ADDRESS))"'
     networks.default.dns_record_name: '"((#KUBE_COMPONENT_NAME))((KUBE_COMPONENT_NAME))((/KUBE_COMPONENT_NAME))((^KUBE_COMPONENT_NAME))((DNS_RECORD_NAME))((/KUBE_COMPONENT_NAME))"'

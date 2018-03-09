@@ -82,3 +82,6 @@
 [submodule "src/cf-syslog-drain-release"]
 	path = src/cf-syslog-drain-release
 	url = https://github.com/cloudfoundry/cf-syslog-drain-release.git
+[submodule "src/consul-release"]
+	path = src/consul-release
+	url = https://github.com/cloudfoundry-community/consul-boshrelease.git

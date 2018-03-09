@@ -113,6 +113,9 @@ uaa-helm: ${FISSILE_BINARY}
 
 ########## BOSH RELEASE TARGETS ##########
 
+consul-release:
+	make/bosh-release src/consul-release
+
 diego-release:
 	make/bosh-release src/diego-release
 
@@ -189,22 +192,23 @@ staticfile-buildpack-release:
 	make/bosh-release src/buildpacks/staticfile-buildpack-release
 
 releases: \
-	diego-release \
-	garden-release \
-	mysql-release \
-	smoke-tests-release \
-	usb-release \
-	nfs-volume-release \
-	cflinuxfs2-release \
+	capi-release \
 	cf-opensuse42-release \
 	cf-sle12-release \
 	cf-syslog-drain-release \
+	cflinuxfs2-release \
+	consul-release \
+	diego-release \
+	garden-release \
+	loggregator-release \
+	mysql-release \
+	nats-release \
+	nfs-volume-release \
 	routing-release \
 	scf-helper-release \
-	capi-release \
-	loggregator-release \
-	nats-release \
+	smoke-tests-release \
 	statsd-injector-release \
+	usb-release \
 	binary-buildpack-release \
 	dotnet-core-buildpack-release \
 	go-buildpack-release \
