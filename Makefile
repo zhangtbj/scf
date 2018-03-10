@@ -113,6 +113,9 @@ uaa-helm: ${FISSILE_BINARY}
 
 ########## BOSH RELEASE TARGETS ##########
 
+app-autoscaler-release:
+	make/bosh-release src/app-autoscaler-release
+
 consul-release:
 	make/bosh-release src/consul-release
 
@@ -195,6 +198,7 @@ staticfile-buildpack-release:
 	make/bosh-release src/buildpacks/staticfile-buildpack-release
 
 releases: \
+	app-autoscaler-release \
 	capi-release \
 	cf-opensuse42-release \
 	cf-sle12-release \

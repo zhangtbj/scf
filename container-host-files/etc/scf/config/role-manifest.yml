@@ -1301,6 +1301,68 @@ roles:
   configuration:
     templates:
       properties.diego.rep.advertise_domain: diego-cell-set.((KUBE_SERVICE_DOMAIN_SUFFIX))
+- name: app-autoscaler
+  environment_scripts: []
+  scripts:
+  - scripts/forward_logfiles.sh
+  jobs:
+  #- name: consul_agent
+  #  release: consul
+  - name: apiserver
+    release_name: app-autoscaler
+  - name: eventgenerator
+    release_name: app-autoscaler
+  - name: metricscollector
+    release_name: app-autoscaler
+  - name: pruner
+    release_name: app-autoscaler
+  - name: scalingengine
+    release_name: app-autoscaler
+  - name: scheduler
+    release_name: app-autoscaler
+  - name: servicebroker
+    release_name: app-autoscaler
+  run:
+    scaling:
+      min: 1
+      max: 1
+      ha: 1
+    capabilities: []
+    persistent-volumes: []
+    shared-volumes: []
+    memory: 256
+    virtual-cpus: 1
+    exposed-ports: []
+    healthcheck: ~
+  configuration:
+    templates:
+      properties.api_server.ca_cert: ((INTERNAL_CA_CERT))
+      properties.api_server.db_config.idle_timeout: 1000
+      properties.api_server.db_config.max_connections: 10
+      properties.api_server.db_config.min_connections: 0
+      properties.api_server.port: 6100
+      properties.api_server.publicPort: 6106
+      properties.api_server.public_ca_cert: ((INTERNAL_CA_CERT))
+      properties.api_server.public_server_cert: ((APP_AUTOSCALER_SERVER_CERT))
+      properties.api_server.public_server_key:  ((APP_AUTOSCALER_SERVER_KEY))
+      properties.api_server.scheduler.ca_cert: ((INTERNAL_CA_CERT))
+      properties.api_server.scheduler.client_cert: ((APP_AUTOSCALER_SCHEDULER_CERT))
+      properties.api_server.scheduler.client_key: ((APP_AUTOSCALER_SCHEDULER_KEY))
+      properties.api_server.server_cert: ((APP_AUTOSCALER_SERVER_CERT))
+      properties.api_server.server_key: ((APP_AUTOSCALER_SERVER_KEY))
+      #properties.api_server.scaling_engine.ca_cert: ((INTERNAL_CA_CERT))
+      #properties.api_server.scaling_engine.client_cert: ((scalingengine_client.certificate))
+      #properties.api_server.scaling_engine.client_key: ((scalingengine_client.private_key))
+      #properties.api_server.metrics_collector.ca_cert: ((INTERNAL_CA_CERT))
+      #properties.api_server.metrics_collector.client_cert: ((metricscollector_client.certificate))
+      #properties.api_server.metrics_collector.client_key: ((metricscollector_client.private_key))
+      #properties.api_server.service_broker.ca_cert: ((INTERNAL_CA_CERT))
+      #properties.api_server.service_broker.client_cert: ((servicebroker_client.certificate))
+      #properties.api_server.service_broker.client_key: ((servicebroker_client.private_key))
+      ##properties.policy_db: *database
+      properties.cf.api: "https://api.((DOMAIN))"
+      properties.cf.skip_ssl_validation: false
+  
 - name: acceptance-tests-brain
   type: bosh-task
   tags: [stop-on-failure]
@@ -1445,6 +1507,38 @@ configuration:
   - name: ALLOW_APP_SSH_ACCESS
     default: true
     description: Allow users to change the value of the app-level allow_ssh attribute.
+    required: true
+  - name: APP_AUTOSCALER_SCHEDULER_CERT
+    secret: true
+    generator:
+      id: app_autoscaler_scheduler_cert
+      type: Certificate
+      value_type: certificate
+    description: PEM-encoded certificate for app-autoscaler scheduler client
+    required: true
+  - name: APP_AUTOSCALER_SCHEDULER_KEY
+    secret: true
+    generator:
+      id: app_autoscaler_scheduler_cert
+      type: Certficate
+      value_type: private_key
+    description: PEM-encoded key for app-autoscaler scheduler client
+    required: true
+  - name: APP_AUTOSCALER_SERVER_CERT
+    secret: true
+    generator:
+      id: app_autoscaler_server_cert
+      type: Certificate
+      value_type: certificate
+    description: PEM-encoded certificate for app-autoscaler API server
+    required: true
+  - name: APP_AUTOSCALER_SERVER_KEY
+    secret: true
+    generator:
+      id: app_autoscaler_server_cert
+      type: Certficate
+      value_type: private_key
+    description: PEM-encoded key for app-autoscaler API server
     required: true
   - name: APP_SSH_KEY
     secret: true

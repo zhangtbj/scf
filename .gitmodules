@@ -88,3 +88,6 @@
 [submodule "src/postgres-release"]
 	path = src/postgres-release
 	url = https://github.com/cloudfoundry/postgres-release.git
+[submodule "src/app-autoscaler-release"]
+	path = src/app-autoscaler-release
+	url = https://github.com/cloudfoundry-incubator/app-autoscaler-release.git
