@@ -98,6 +98,7 @@ roles:
 - name: consul
   scripts:
   - scripts/patches/consul_no_edit_resolv_conf.sh
+  - scripts/patches/consul_spec_id_is_guid.sh
   - scripts/forward_logfiles.sh
   jobs:
   - name: global-properties # needs to be first so images use it for processing monit templates
@@ -105,11 +106,9 @@ roles:
   - name: consul
     release_name: consul
     provides:
-      consul_servers:
-        as: consul_leaders
+      consul_servers: {}
     consumes:
-      consul_servers:
-        from: consul_leaders
+      consul_servers: {}
   processes:
   - name: consul_server
   - name: metron_agent
@@ -123,10 +122,22 @@ roles:
     memory: 256
     virtual-cpus: 1
     exposed-ports:
-    - name: consul
+    - name: consul-server
+      external: 8300
+      internal: 8300
+      protocol: TCP
+    - name: consul-http
       external: 8500
       internal: 8500
       protocol: TCP
+    - name: serf-tcp
+      extenral: 8301
+      internal: 8301
+      protocol: TCP
+    - name: serf-udp
+      extenral: 8301
+      internal: 8301
+      protocol: UDP
   affinity:
     podAntiAffinity:
       preferredDuringSchedulingIgnoredDuringExecution:
@@ -347,7 +358,7 @@ roles:
       protocol: TCP
       external: 5524
       internal: 5524
-      public: false
+      public: true
     affinity:
       podAntiAffinity:
         preferredDuringSchedulingIgnoredDuringExecution:
@@ -362,6 +373,8 @@ roles:
             topologyKey: "beta.kubernetes.io/os"
   configuration:
     templates:
+      properties.databases.databases: >
+        [{ "name": "autoscaler" }]
       properties.databases.port: 5524
       properties.databases.roles: '[{"name":"pgadmin","password":"((POSTGRES_PASSWORD))"}]'
 
@@ -1301,13 +1314,19 @@ roles:
   configuration:
     templates:
       properties.diego.rep.advertise_domain: diego-cell-set.((KUBE_SERVICE_DOMAIN_SUFFIX))
+      properties.diego.rep.cell_id: ((HOSTNAME))
 - name: app-autoscaler
-  environment_scripts: []
+  environment_scripts:
+  - scripts/configure-HA-hosts.sh
   scripts:
+  - scripts/patches/consul_no_edit_resolv_conf.sh
+  - scripts/patches/consul_spec_id_is_guid.sh
   - scripts/forward_logfiles.sh
   jobs:
-  #- name: consul_agent
-  #  release: consul
+  - name: global-properties # needs to be first so images use it for processing monit templates
+    release_name: scf-helper
+  - name: consul
+    release_name: consul
   - name: apiserver
     release_name: app-autoscaler
   - name: eventgenerator
@@ -1322,6 +1341,8 @@ roles:
     release_name: app-autoscaler
   - name: servicebroker
     release_name: app-autoscaler
+  - name: route_registrar
+    release_name: routing
   run:
     scaling:
       min: 1
@@ -1332,7 +1353,34 @@ roles:
     shared-volumes: []
     memory: 256
     virtual-cpus: 1
-    exposed-ports: []
+    exposed-ports:
+    - name: serf-tcp
+      internal: 8301
+      protocol: TCP
+    - name: serf-udp
+      internal: 8301
+      protocol: UDP
+    - name: api-server
+      internal: &autoscaler_api_port 6100
+      protocol: TCP
+    - name: svc-broker
+      internal: &autoscaler_servicebroker_port 6101
+      protocol: TCP
+    - name: scheduler
+      internal: &autoscaler_scheduler_port 6102
+      protocol: TCP
+    - name: metrics
+      internal: &autoscaler_metricscollector_port 6103
+      protocol: TCP
+    - name: scaling-engine
+      internal: &autoscaler_scaling_engine_port 6104
+      protocol: TCP
+    - name: event-gen
+      internal: &autoscaler_event_generator_port 6105
+      protocol: TCP
+    - name: svc-intern
+      internal: &autoscaler_service_broker_internal_port 6107
+      protocol: TCP
     healthcheck: ~
   configuration:
     templates:
@@ -1340,29 +1388,154 @@ roles:
       properties.api_server.db_config.idle_timeout: 1000
       properties.api_server.db_config.max_connections: 10
       properties.api_server.db_config.min_connections: 0
-      properties.api_server.port: 6100
+      properties.api_server.metrics_collector.ca_cert: ((INTERNAL_CA_CERT))
+      properties.api_server.metrics_collector.client_cert: ((APP_AUTOSCALER_SERVER_CERT))
+      properties.api_server.metrics_collector.client_key: ((APP_AUTOSCALER_SERVER_KEY))
+      properties.api_server.metrics_collector.host: app-autoscaler.((KUBERNETES_NAMESPACE)).svc
+      properties.api_server.metrics_collector.port: *autoscaler_metricscollector_port
+      properties.api_server.port: *autoscaler_api_port
       properties.api_server.publicPort: 6106
       properties.api_server.public_ca_cert: ((INTERNAL_CA_CERT))
       properties.api_server.public_server_cert: ((APP_AUTOSCALER_SERVER_CERT))
       properties.api_server.public_server_key:  ((APP_AUTOSCALER_SERVER_KEY))
+      properties.api_server.scaling_engine.ca_cert: ((INTERNAL_CA_CERT))
+      properties.api_server.scaling_engine.client_cert: ((APP_AUTOSCALER_SCHEDULER_CERT))
+      properties.api_server.scaling_engine.client_key: ((APP_AUTOSCALER_SCHEDULER_KEY))
+      properties.api_server.scaling_engine.host: app-autoscaler.((KUBERNETES_NAMESPACE)).svc
+      properties.api_server.scaling_engine.port: *autoscaler_scaling_engine_port
       properties.api_server.scheduler.ca_cert: ((INTERNAL_CA_CERT))
       properties.api_server.scheduler.client_cert: ((APP_AUTOSCALER_SCHEDULER_CERT))
       properties.api_server.scheduler.client_key: ((APP_AUTOSCALER_SCHEDULER_KEY))
+      properties.api_server.scheduler.host: app-autoscaler.((KUBERNETES_NAMESPACE)).svc
+      properties.api_server.scheduler.port: *autoscaler_scheduler_port
       properties.api_server.server_cert: ((APP_AUTOSCALER_SERVER_CERT))
       properties.api_server.server_key: ((APP_AUTOSCALER_SERVER_KEY))
-      #properties.api_server.scaling_engine.ca_cert: ((INTERNAL_CA_CERT))
-      #properties.api_server.scaling_engine.client_cert: ((scalingengine_client.certificate))
-      #properties.api_server.scaling_engine.client_key: ((scalingengine_client.private_key))
-      #properties.api_server.metrics_collector.ca_cert: ((INTERNAL_CA_CERT))
-      #properties.api_server.metrics_collector.client_cert: ((metricscollector_client.certificate))
-      #properties.api_server.metrics_collector.client_key: ((metricscollector_client.private_key))
-      #properties.api_server.service_broker.ca_cert: ((INTERNAL_CA_CERT))
-      #properties.api_server.service_broker.client_cert: ((servicebroker_client.certificate))
-      #properties.api_server.service_broker.client_key: ((servicebroker_client.private_key))
-      ##properties.policy_db: *database
+      properties.api_server.service_broker.ca_cert: ((INTERNAL_CA_CERT))
+      properties.api_server.service_broker.client_cert: ((APP_AUTOSCALER_SERVER_CERT))
+      properties.api_server.service_broker.client_key: ((APP_AUTOSCALER_SERVER_KEY))
+      properties.api_server.service_broker.host: app-autoscaler.((KUBERNETES_NAMESPACE)).svc
+      properties.api_server.service_broker.port: *autoscaler_service_broker_internal_port
+      properties.appmetrics_db.address:   &autoscaler_db_address postgres-set.((KUBERNETES_NAMESPACE)).svc
+      properties.appmetrics_db.databases: &autoscaler_databases '[{"name":"autoscaler","tag":"default"}]'
+      properties.appmetrics_db.db_scheme: &autoscaler_db_scheme postgres
+      properties.appmetrics_db.port:      &autoscaler_db_port 5524
+      properties.appmetrics_db.roles:     &autoscaler_db_roles '[{"name":"pgadmin", "password":"((POSTGRES_PASSWORD))", "tag":"default"}]'
+      properties.binding_db.address:   *autoscaler_db_address
+      properties.binding_db.databases: *autoscaler_databases
+      properties.binding_db.db_scheme: *autoscaler_db_scheme
+      properties.binding_db.port:      *autoscaler_db_port
+      properties.binding_db.roles:     *autoscaler_db_roles
       properties.cf.api: "https://api.((DOMAIN))"
-      properties.cf.skip_ssl_validation: false
-  
+      properties.cf.client_id: "''"
+      properties.cf.grant_type: password
+      properties.cf.password: "((CLUSTER_ADMIN_PASSWORD))"
+      properties.cf.secret: "''"
+      properties.cf.skip_ssl_validation: true
+      properties.cf.username: admin
+      properties.consul.agent_config: '{ "ports": {"https": -1} }'
+      properties.consul.http_port: 8500
+      properties.consul.server: false
+      properties.consul.ssl_ca: ((INTERNAL_CA_CERT))
+      properties.consul.ssl_cert: ((APP_AUTOSCALER_SERVER_CERT))
+      properties.consul.ssl_key: ((APP_AUTOSCALER_SERVER_KEY))
+      properties.consul.verify_incoming: false # Workaround for scheduler
+      properties.eventgenerator.metricscollector.ca_cert: ((INTERNAL_CA_CERT))
+      properties.eventgenerator.metricscollector.client_cert: ((APP_AUTOSCALER_METRICS_CERT))
+      properties.eventgenerator.metricscollector.client_key: ((APP_AUTOSCALER_METRICS_KEY))
+      properties.eventgenerator.metricscollector.host: app-autoscaler.((KUBERNETES_NAMESPACE)).svc
+      properties.eventgenerator.metricscollector.port: *autoscaler_metricscollector_port
+      properties.eventgenerator.scaling_engine.ca_cert: ((INTERNAL_CA_CERT))
+      properties.eventgenerator.scaling_engine.client_cert: ((APP_AUTOSCALER_SCALING_CERT))
+      properties.eventgenerator.scaling_engine.client_key: ((APP_AUTOSCALER_SCALING_KEY))
+      properties.eventgenerator.scaling_engine.host: app-autoscaler.((KUBERNETES_NAMESPACE)).svc
+      properties.eventgenerator.scaling_engine.port: *autoscaler_scaling_engine_port
+      properties.eventgenerator.server.port: *autoscaler_event_generator_port
+      properties.instancemetrics_db.address:   *autoscaler_db_address
+      properties.instancemetrics_db.databases: *autoscaler_databases
+      properties.instancemetrics_db.db_scheme: *autoscaler_db_scheme
+      properties.instancemetrics_db.port:      *autoscaler_db_port
+      properties.instancemetrics_db.roles:     *autoscaler_db_roles
+      properties.lock_db.address:   *autoscaler_db_address
+      properties.lock_db.databases: *autoscaler_databases
+      properties.lock_db.db_scheme: *autoscaler_db_scheme
+      properties.lock_db.port:      *autoscaler_db_port
+      properties.lock_db.roles:     *autoscaler_db_roles
+      properties.metricscollector.ca_cert: ((INTERNAL_CA_CERT))
+      properties.metricscollector.server.port: *autoscaler_metricscollector_port
+      properties.metricscollector.server_cert: ((APP_AUTOSCALER_METRICS_CERT))
+      properties.metricscollector.server_key: ((APP_AUTOSCALER_METRICS_KEY))
+      properties.policy_db.address:   *autoscaler_db_address
+      properties.policy_db.databases: *autoscaler_databases
+      properties.policy_db.db_scheme: *autoscaler_db_scheme
+      properties.policy_db.port:      *autoscaler_db_port
+      properties.policy_db.roles:     *autoscaler_db_roles
+      properties.route_registrar.routes: >
+        [{
+          "name": "autoscaler_service_broker",
+          "registration_interval": "20s",
+          "port": 6101,
+          "tags": { "component": "autoscaler_service_broker" },
+          "uris": [ "autoscalerservicebroker.((DOMAIN))" ]
+        }]
+      properties.scalingengine.ca_cert: ((INTERNAL_CA_CERT))
+      properties.scalingengine.server.port: *autoscaler_scaling_engine_port
+      properties.scalingengine.server_cert: ((APP_AUTOSCALER_SCALING_CERT))
+      properties.scalingengine.server_key: ((APP_AUTOSCALER_SCALING_KEY))
+      properties.scalingengine_db.address:   *autoscaler_db_address
+      properties.scalingengine_db.databases: *autoscaler_databases
+      properties.scalingengine_db.db_scheme: *autoscaler_db_scheme
+      properties.scalingengine_db.port:      *autoscaler_db_port
+      properties.scalingengine_db.roles:     *autoscaler_db_roles
+      properties.scheduler.ca_cert: ((INTERNAL_CA_CERT))
+      properties.scheduler.job_reschedule_interval_millisecond: 10000
+      properties.scheduler.job_reschedule_maxcount: 6
+      properties.scheduler.notification_reschedule_maxcount: 3
+      properties.scheduler.port: *autoscaler_scheduler_port
+      properties.scheduler.scaling_engine.ca_cert: ((INTERNAL_CA_CERT))
+      properties.scheduler.scaling_engine.client_cert: ((APP_AUTOSCALER_SCALING_CERT))
+      properties.scheduler.scaling_engine.client_key: ((APP_AUTOSCALER_SCALING_KEY))
+      properties.scheduler.scaling_engine.host: app-autoscaler.((KUBERNETES_NAMESPACE)).svc
+      properties.scheduler.scaling_engine.port: *autoscaler_scaling_engine_port
+      properties.scheduler.server_cert: ((APP_AUTOSCALER_SCHEDULER_CERT))
+      properties.scheduler.server_key: ((APP_AUTOSCALER_SCHEDULER_KEY))
+      properties.scheduler_db.address:   *autoscaler_db_address
+      properties.scheduler_db.databases: *autoscaler_databases
+      properties.scheduler_db.db_scheme: *autoscaler_db_scheme
+      properties.scheduler_db.port:      *autoscaler_db_port
+      properties.scheduler_db.roles:     *autoscaler_db_roles
+      properties.service_broker.api_server.ca_cert: ((INTERNAL_CA_CERT))
+      properties.service_broker.api_server.client_cert: ((APP_AUTOSCALER_SERVICE_BROKER_CERT))
+      properties.service_broker.api_server.client_key: ((APP_AUTOSCALER_SERVICE_BROKER_KEY))
+      properties.service_broker.api_server.host: app-autoscaler.((KUBERNETES_NAMESPACE)).svc
+      properties.service_broker.api_server.port: *autoscaler_api_port
+      properties.service_broker.ca_cert: ((INTERNAL_CA_CERT))
+      properties.service_broker.catalog: >
+        { "services": [ {
+          "id": "autoscaler-guid",
+          "name": "autoscaler",
+          "description": "Automatically increase or decrease the number of application instances based on a policy you define.",
+          "bindable": true,
+          "plans": [ {
+            "id": "autoscaler-default-plan",
+            "name": "default",
+            "description": "This is the default service plan for the Auto-Scaling service."
+          } ]
+        } ] }
+      properties.service_broker.dashboard_redirect_uri: "''"
+      properties.service_broker.db_config.idle_timeout: 1000
+      properties.service_broker.db_config.max_connections: 10
+      properties.service_broker.db_config.min_connections: 0
+      properties.service_broker.http_request_timeout: 5000
+      properties.service_broker.password: password
+      properties.service_broker.port: *autoscaler_service_broker_internal_port
+      properties.service_broker.publicPort: *autoscaler_servicebroker_port
+      properties.service_broker.public_ca_cert: ((INTERNAL_CA_CERT))
+      properties.service_broker.public_server_cert: ((APP_AUTOSCALER_SERVICE_BROKER_CERT))
+      properties.service_broker.public_server_key: ((APP_AUTOSCALER_SERVICE_BROKER_KEY))
+      properties.service_broker.server_cert: ((APP_AUTOSCALER_SERVICE_BROKER_CERT))
+      properties.service_broker.server_key: ((APP_AUTOSCALER_SERVICE_BROKER_KEY))
+      properties.service_broker.username: username
+
 - name: acceptance-tests-brain
   type: bosh-task
   tags: [stop-on-failure]
@@ -1508,20 +1681,58 @@ configuration:
     default: true
     description: Allow users to change the value of the app-level allow_ssh attribute.
     required: true
+  - name: APP_AUTOSCALER_METRICS_CERT
+    secret: true
+    generator:
+      id: app_autoscaler_metrics_cert
+      type: Certificate
+      value_type: certificate
+      role_name: app-autoscaler
+    description: PEM-encoded certificate for app-autoscaler metrics collector
+    required: true
+  - name: APP_AUTOSCALER_METRICS_KEY
+    secret: true
+    generator:
+      id: app_autoscaler_metrics_cert
+      type: Certificate
+      value_type: private_key
+      role_name: app-autoscaler
+    description: PEM-encoded key for app-autoscaler metrics collector
+    required: true
+  - name: APP_AUTOSCALER_SCALING_CERT
+    secret: true
+    generator:
+      id: app_autoscaler_scaling_cert
+      type: Certificate
+      value_type: certificate
+      role_name: app-autoscaler
+    description: PEM-encoded certificate for app-autoscaler scaling engine
+    required: true
+  - name: APP_AUTOSCALER_SCALING_KEY
+    secret: true
+    generator:
+      id: app_autoscaler_scaling_cert
+      type: Certificate
+      value_type: private_key
+      role_name: app-autoscaler
+    description: PEM-encoded key for app-autoscaler scaling engine
+    required: true
   - name: APP_AUTOSCALER_SCHEDULER_CERT
     secret: true
     generator:
       id: app_autoscaler_scheduler_cert
       type: Certificate
       value_type: certificate
+      role_name: app-autoscaler
     description: PEM-encoded certificate for app-autoscaler scheduler client
     required: true
   - name: APP_AUTOSCALER_SCHEDULER_KEY
     secret: true
     generator:
       id: app_autoscaler_scheduler_cert
-      type: Certficate
+      type: Certificate
       value_type: private_key
+      role_name: app-autoscaler
     description: PEM-encoded key for app-autoscaler scheduler client
     required: true
   - name: APP_AUTOSCALER_SERVER_CERT
@@ -1530,15 +1741,35 @@ configuration:
       id: app_autoscaler_server_cert
       type: Certificate
       value_type: certificate
+      role_name: app-autoscaler
     description: PEM-encoded certificate for app-autoscaler API server
     required: true
   - name: APP_AUTOSCALER_SERVER_KEY
     secret: true
     generator:
       id: app_autoscaler_server_cert
-      type: Certficate
+      type: Certificate
       value_type: private_key
+      role_name: app-autoscaler
     description: PEM-encoded key for app-autoscaler API server
+    required: true
+  - name: APP_AUTOSCALER_SERVICE_BROKER_CERT
+    secret: true
+    generator:
+      id: app_autoscaler_service_broker_cert
+      type: Certificate
+      value_type: certificate
+      role_name: app-autoscaler
+    description: PEM-encoded certificate for app-autoscaler service broker
+    required: true
+  - name: APP_AUTOSCALER_SERVICE_BROKER_KEY
+    secret: true
+    generator:
+      id: app_autoscaler_service_broker_cert
+      type: Certificate
+      value_type: private_key
+      role_name: app-autoscaler
+    description: PEM-encoded key for app-autoscaler service broker
     required: true
   - name: APP_SSH_KEY
     secret: true
@@ -2504,7 +2735,7 @@ configuration:
     required: true
   templates:
     az: '"((KUBE_AZ))"'
-    # id: see configgin, from Kubernetes pod.metadata.uid
+    id: ((#KUBE_COMPONENT_NAME))((KUBE_COMPONENT_NAME))((#KUBE_COMPONENT_INDEX))-((KUBE_COMPONENT_INDEX))((/KUBE_COMPONENT_INDEX))((/KUBE_COMPONENT_NAME))((^KUBE_COMPONENT_NAME))((HOSTNAME))((/KUBE_COMPONENT_NAME))
     index: ((KUBE_COMPONENT_INDEX))((^KUBE_COMPONENT_INDEX))0((/KUBE_COMPONENT_INDEX))
     ip: '"((IP_ADDRESS))"'
     networks.default.dns_record_name: '"((#KUBE_COMPONENT_NAME))((KUBE_COMPONENT_NAME))((/KUBE_COMPONENT_NAME))((^KUBE_COMPONENT_NAME))((DNS_RECORD_NAME))((/KUBE_COMPONENT_NAME))"'
