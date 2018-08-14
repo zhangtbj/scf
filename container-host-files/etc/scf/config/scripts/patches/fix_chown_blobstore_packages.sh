@@ -7,13 +7,9 @@ if [ -f "${SENTINEL}" ]; then
   exit 0
 fi
 
-cd "$PATCH_DIR"
-
-patch --force -p3 <<'PATCH'
-diff --git jobs/blobstore/templates/pre-start.sh.erb jobs/blobstore/templates/pre-start.sh.erb
-index 431b2dc..35bab6c 100644
---- jobs/blobstore/templates/pre-start.sh.erb
-+++ jobs/blobstore/templates/pre-start.sh.erb
+patch -d "$PATCH_DIR" --force -p0 <<'PATCH'
+--- pre-start.sh.erb
++++ pre-start.sh.erb
 @@ -9,7 +9,7 @@ function setup_blobstore_directories {
    local data_dir=/var/vcap/data/blobstore
    local store_tmp_dir=$store_dir/tmp/uploads
@@ -23,15 +19,15 @@ index 431b2dc..35bab6c 100644
  
    mkdir -p $run_dir
    mkdir -p $log_dir
-@@ -17,7 +17,7 @@ function setup_blobstore_directories {
-   mkdir -p $store_tmp_dir
+@@ -18,7 +18,7 @@ function setup_blobstore_directories {
    mkdir -p $data_dir
    mkdir -p $data_tmp_dir
--  chown -R vcap:vcap $run_dir $log_dir $store_dir $store_tmp_dir $data_dir $data_tmp_dir $nginx_webdav_dir "${nginx_webdav_dir}/.."
-+  chown -R -L vcap:vcap $run_dir $log_dir $store_dir $store_tmp_dir $data_dir $data_tmp_dir $packages_dir
- }
  
- setup_blobstore_directories
+-  local dirs="$run_dir $log_dir $store_dir $store_tmp_dir $data_dir $data_tmp_dir $nginx_webdav_dir ${nginx_webdav_dir}/.."
++  local dirs="$run_dir $log_dir $store_dir $store_tmp_dir $data_dir $data_tmp_dir $packages_dir"
+   local num_needing_chown=$(find $dirs -not -user vcap -or -not -group vcap | wc -l)
+ 
+   if [ $num_needing_chown -gt 0 ]; then
 PATCH
 
 touch "${SENTINEL}"

@@ -173,7 +173,7 @@ instance_groups:
       min: 1
       max: 3
       ha: 2
-    capabilities: []
+    capabilities: [ALL]
     memory: 60
     virtual-cpus: 2
     exposed-ports:
@@ -418,7 +418,7 @@ instance_groups:
       min: 1
       max: 3
       ha: 2
-    capabilities: []
+    capabilities: [ALL]
     memory: 310
     virtual-cpus: 2
     exposed-ports:
@@ -479,7 +479,7 @@ instance_groups:
       min: 1
       max: 65535
       ha: 2
-    capabilities: []
+    capabilities: [ALL]
     memory: 135
     virtual-cpus: 4
     exposed-ports:
@@ -579,7 +579,7 @@ instance_groups:
             topologyKey: "beta.kubernetes.io/os"
   configuration:
     templates:
-      properties.dns_health_check_host: '"((DNS_HEALTH_CHECK_HOST))"'
+      properties.dns_health_check_host: '"api.((KUBERNETES_NAMESPACE)).svc.((KUBERNETES_CLUSTER_DOMAIN))"'
 - name: routing-api
   environment_scripts:
   - scripts/configure-HA-hosts.sh
@@ -604,7 +604,7 @@ instance_groups:
       min: 1
       max: 3
       ha: 2
-    capabilities: []
+    capabilities: [ALL]
     memory: 114
     virtual-cpus: 4
     exposed-ports:
@@ -627,7 +627,7 @@ instance_groups:
     active-passive-probe: head -c0 </dev/tcp/${HOSTNAME}/3000
   configuration:
     templates:
-      properties.dns_health_check_host: '"((DNS_HEALTH_CHECK_HOST))"'
+      properties.dns_health_check_host: '"api.((KUBERNETES_NAMESPACE)).svc.((KUBERNETES_CLUSTER_DOMAIN))"'
 - name: api
   environment_scripts:
   - scripts/configure-HA-hosts.sh
@@ -962,7 +962,7 @@ instance_groups:
       min: 1
       max: 3
       ha: 2
-    capabilities: []
+    capabilities: [ALL]
     memory: 99
     virtual-cpus: 4
     exposed-ports:
@@ -1013,7 +1013,7 @@ instance_groups:
       min: 1
       max: 3
       ha: 2
-    capabilities: []
+    capabilities: [ALL]
     memory: 129
     virtual-cpus: 4
     exposed-ports:
@@ -1058,7 +1058,7 @@ instance_groups:
       min: 1
       max: 3
       ha: 2
-    capabilities: []
+    capabilities: [ALL]
     memory: 123
     virtual-cpus: 2
     exposed-ports:
@@ -1234,6 +1234,47 @@ instance_groups:
       properties.tls.certificate: '"((BBS_REP_CERT))"'                      # cfdot property
       properties.tls.key: ((REP_SERVER_KEY))
       properties.tls.private_key: '"((BBS_REP_KEY))"'                       # cfdot property
+
+
+- name: eirini
+  environment_scripts:
+  - scripts/configure-HA-hosts.sh
+  - scripts/go_log_level.sh
+  scripts:
+  - scripts/forward_logfiles.sh
+  - scripts/patches/fix_monit_rsyslog.sh
+  jobs:
+  - name: global-properties # needs to be first so images use it for processing monit templates
+    release: scf-helper
+  - name: authorize-internal-ca
+    release: scf
+  - name: patch-properties
+    release: scf-helper
+  - name: opi
+    release: eirini
+  - name: cflinuxfs2-rootfs-setup
+    release: cflinuxfs2
+  - name: registry
+    release: eirini
+  run:
+    scaling:
+      min: 1
+      max: 1
+      ha: 1
+    capabilities: [ALL]
+    memory: 256
+    virtual-cpus: 2
+    exposed-ports:
+    - name: opi-server
+      protocol: TCP
+      internal: 8085
+    - name: opi-registry
+      protocol: TCP
+      internal: 8080
+      external: 5800
+      public: true
+
+
 - name: acceptance-tests-brain
   type: bosh-task
   tags:
@@ -2433,10 +2474,6 @@ configuration:
     default: false
     description: Disable external buildpacks. Only admin buildpacks and system buildpacks will be available to users.
     required: true
-  - name: DNS_HEALTH_CHECK_HOST
-    default: 127.0.0.1
-    description: The host to ping for confirmation of DNS resolution.
-    required: true
   - name: DOMAIN
     example: my-scf-cluster.com
     required: true
@@ -2463,6 +2500,18 @@ configuration:
     default: 5
     description: The number of versions of an application to keep. You will be able to rollback to this amount of versions.
     required: true
+  - name: EIRINI_KUBE_CONFIG
+    default: '{"clusters":[{"cluster":{"server":"http://192.168.77.77:8080"},"name":"kubernetes"}],"contexts":[{"context":{"cluster":"kubernetes"},"name":"local"}],"current-context":"local","kind":"Config","preferences":{},"users":[]}'
+    description: Full Kuberneted config file for the Eirini backend, in JSON format. 
+  - name: EIRINI_KUBE_ENDPOINT
+    default: '192.168.77.77'
+    description: Kubernetes endpoint used when creating an Ingress
+  - name: EIRINI_KUBE_NAMESPACE
+    default: 'eirini'
+    description: Kubernetes namespace used to create applications
+  - name: EIRINI_REGISTRY_ADDRESS
+    default: '192.168.77.77:5800'
+    description: Eirini's registry address, as it's accessed by Kubernetes
   - name: ENABLE_SECURITY_EVENT_LOGGING
     default: "false"
     description: >
@@ -3355,6 +3404,7 @@ configuration:
     properties.cc.mutual_tls.private_key: '"((CC_SERVER_KEY))"'
     properties.cc.mutual_tls.public_cert: '"((CC_SERVER_CRT))"'
     properties.cc.nginx_error_log_level: '"((NGINX_LOG_LEVEL))((#LOG_LEVEL))((/LOG_LEVEL))"'
+    properties.cc.opi.url: http://eirini.((KUBERNETES_NAMESPACE)).svc.((KUBERNETES_CLUSTER_DOMAIN)):8085
     properties.cc.packages.webdav_config.password: '"((BLOBSTORE_PASSWORD))"'
     properties.cc.packages.webdav_config.private_endpoint: https://blobstore.((KUBERNETES_NAMESPACE)).svc.((KUBERNETES_CLUSTER_DOMAIN)):4443
     properties.cc.packages.webdav_config.public_endpoint: '"https://blobstore.((DOMAIN))"'
@@ -3515,9 +3565,21 @@ configuration:
     properties.nfsv3driver.ldap_user_fqdn: '"((PERSI_NFS_DRIVER_LDAP_USER_FQDN))"'
     properties.nfsv3driver.log_level: '"((GO_LOG_LEVEL))((#LOG_LEVEL))((/LOG_LEVEL))"'
     properties.opensuse42-rootfs.trusted_certs: '"((ROOTFS_TRUSTED_CERTS))((#ROOTFS_TRUSTED_CERTS))\n((/ROOTFS_TRUSTED_CERTS))((INTERNAL_CA_CERT))"'
+
+    properties.opi.adminPassword: ((CLUSTER_ADMIN_PASSWORD))
+    properties.opi.ccAPI: http://api.((KUBERNETES_NAMESPACE)).svc.((KUBERNETES_CLUSTER_DOMAIN)):9022
+    properties.opi.ccPassword: ((INTERNAL_API_PASSWORD))
+    properties.opi.externalEiriniAddress: eirini.((KUBERNETES_NAMESPACE)).svc.((KUBERNETES_CLUSTER_DOMAIN))
+    properties.opi.kube_config: '((EIRINI_KUBE_CONFIG))'
+    properties.opi.kube_endpoint: '"((EIRINI_KUBE_ENDPOINT))"'
+    properties.opi.kube_namespace: ((EIRINI_KUBE_NAMESPACE))
+    properties.opi.nats_ip: nats.((KUBERNETES_NAMESPACE)).svc.((KUBERNETES_CLUSTER_DOMAIN))
+    properties.opi.nats_password: "((NATS_PASSWORD))"
+    properties.opi.registry_address: ((EIRINI_REGISTRY_ADDRESS))
+
     properties.router.balancing_algorithm: '"((ROUTER_BALANCING_ALGORITHM))"'
     properties.router.client_cert_validation: '"((ROUTER_CLIENT_CERT_VALIDATION))"'
-    properties.router.dns_health_check_host: '"((DNS_HEALTH_CHECK_HOST))"'
+    properties.router.dns_health_check_host: '"api.((KUBERNETES_NAMESPACE)).svc.((KUBERNETES_CLUSTER_DOMAIN))"'
     properties.router.force_forwarded_proto_https: ((FORCE_FORWARDED_PROTO_AS_HTTPS))
     properties.router.forwarded_client_cert: "((ROUTER_FORWARDED_CLIENT_CERT))"
     properties.router.logging_level: '"((GO_LOG_LEVEL))((#LOG_LEVEL))((/LOG_LEVEL))"'
