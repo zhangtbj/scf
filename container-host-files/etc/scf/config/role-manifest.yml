@@ -1166,6 +1166,8 @@ instance_groups:
     release: loggregator-agent
   - name: nfsv3driver
     release: nfs-volume
+  - name: mapfs
+    release: mapfs
   tags:
   - headless
   # Role needs volume claim templates (see storage below), no LB => clustered

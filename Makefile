@@ -145,6 +145,9 @@ usb-release:
 nfs-volume-release:
 	make/bosh-release src/nfs-volume-release
 
+mapfs-release:
+	make/bosh-release src/mapfs-release
+
 postgres-release:
 	make/bosh-release src/postgres-release
 
@@ -233,6 +236,7 @@ releases: \
 	mysql-release \
 	nats-release \
 	nfs-volume-release \
+	mapfs-release \
 	nodejs-buildpack-release \
 	php-buildpack-release \
 	postgres-release \
