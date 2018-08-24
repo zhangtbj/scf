@@ -264,6 +264,7 @@ properties:
     service_id: '20e22be2-a4fb-4b17-a5ef-0c9dba8bdc74'
   opi:
     skipSslValidation: true
+    use_ingress: false
   router:
     enable_ssl: true
     extra_headers_to_log: null
