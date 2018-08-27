@@ -1,11 +1,9 @@
 *~
 \#*
-_work/
-target/
 password
-*.pem
 !.fissile/.gitkeep
 !.fissile/.bosh/.gitkeep
+!src/garden-runc-release
 .fissile/*
 .vagrant
 .bash_history
@@ -22,3 +20,4 @@ password
 /output/
 personal-setup
 src/scf-helper-release/src/acceptance-tests-brain/test-resources/buildpack_inspector_buildpack/buildpack_inspector_buildpack-*.zip
+.final_releases
