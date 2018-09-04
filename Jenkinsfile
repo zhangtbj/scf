@@ -243,40 +243,6 @@ pipeline {
     }
 
     stages {
-        stage('check_for_changed_files') {
-          steps {
-            script {
-	      def all_files = new ArrayList()
-
-	      println currentBuild
-	      println currentBuild.changeSets
-	      println currentBuild.changeSets.getClass()
-	      println currentBuild.rawBuild.changeSets
-	      println currentBuild.rawBuild.changeSets.getClass()
-	      println currentBuild.previousBuild
-	      println currentBuild.previousBuild.id
-	      println currentBuild.previousBuild.displayName
-	      println currentBuild.previousBuild.description
-	      println currentBuild.previousBuild.changeSets
-
-              for (set in currentBuild.changeSets) {
-                def entries = set.items
-                println entries
-                for (entry in entries) {
-                  for (file in entry.affectedFiles) {
-                    println file.path
-                    all_files << file.path
-                  }
-                }
-              }
-
-              if (all_files.length == 1 && all_files[0] == 'CHANGELOG.md') {
-                error "Only CHANGELOG.md was modified"
-              }
-            }
-          }
-        }
-
         stage('trigger_sles_build') {
           when {
                 expression { return params.TRIGGER_SLES_BUILD }
@@ -366,6 +332,55 @@ pipeline {
                 checkout scm
             }
         }
+        stage('check_for_changed_files') {
+          steps {
+            script {
+	      def all_files = new ArrayList()
+
+	      println currentBuild
+	      println currentBuild.changeSets
+	      println currentBuild.changeSets.getClass()
+	      println currentBuild.rawBuild.changeSets
+	      println currentBuild.rawBuild.changeSets.getClass()
+	      println currentBuild.previousBuild
+	      println currentBuild.previousBuild.id
+	      println currentBuild.previousBuild.displayName
+	      println currentBuild.previousBuild.description
+	      println currentBuild.previousBuild.changeSets
+
+              println "Previous:"
+
+              for (set in currentBuild.previousBuild.changeSets) {
+                def entries = set.items
+                println entries
+                for (entry in entries) {
+                  for (file in entry.affectedFiles) {
+                    println file.path
+                    all_files << file.path
+                  }
+                }
+              }
+
+              println "Current:"
+
+              for (set in currentBuild.changeSets) {
+                def entries = set.items
+                println entries
+                for (entry in entries) {
+                  for (file in entry.affectedFiles) {
+                    println file.path
+                    all_files << file.path
+                  }
+                }
+              }
+
+              if (all_files.length == 1 && all_files[0] == 'CHANGELOG.md') {
+                error "Only CHANGELOG.md was modified"
+              }
+            }
+          }
+        }
+
         stage('tools') {
             steps {
                 sh '''
