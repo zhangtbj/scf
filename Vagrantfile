@@ -172,6 +172,10 @@ Vagrant.configure(2) do |config|
       perl -p -i -e 's@^(KUBE_API_ARGS=)"(.*)"@\\1"\\2 --authorization-mode=RBAC"@' /etc/kubernetes/apiserver
       systemctl restart kube-apiserver
     fi
+    if ! grep -q "KUBE_ADMISSION_CONTROL=.*PodSecurityPolicy" /etc/kubernetes/apiserver; then
+      perl -p -i -e 's@^(KUBE_ADMISSION_CONTROL="--admission-control=)@\\1PodSecurityPolicy,@' /etc/kubernetes/apiserver
+      systemctl restart kube-apiserver
+    fi
   SHELL
 
   # Set up the storage class

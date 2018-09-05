@@ -1,0 +1,110 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: testing
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: testing-user
+  namespace: testing
+---
+apiVersion: "rbac.authorization.k8s.io/v1beta1"
+kind: Role
+metadata:
+  name: secrets-role
+  namespace: testing
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - "configmaps"
+  - "secrets"
+  verbs:
+  - "create"
+  - "get"
+  - "list"
+  - "patch"
+  - "update"
+  - "delete"
+---
+apiVersion: "rbac.authorization.k8s.io/v1beta1"
+kind: Role
+metadata:
+  name: testing-role
+  namespace: testing
+rules:
+- apiGroups: [""]
+  resources: [pods]
+  verbs: [create]
+  # verbs: [create, update, patch, delete, get, list]
+---
+apiVersion: "rbac.authorization.k8s.io/v1beta1"
+kind: "Role"
+metadata:
+  name: "configgin-role"
+  namespace: testing
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - "pods"
+  verbs:
+  - "get"
+  - "list"
+  - "patch"
+- apiGroups:
+  - ""
+  resources:
+  - "services"
+  verbs:
+  - "get"
+- apiGroups:
+  - "apps"
+  resources:
+  - "statefulsets"
+  verbs:
+  - "get"
+---
+apiVersion: "rbac.authorization.k8s.io/v1beta1"
+kind: "RoleBinding"
+metadata:
+  name: "testing-role-binding"
+  namespace: testing
+subjects:
+- kind: "ServiceAccount"
+  name: "testing-user"
+  namespace: testing
+roleRef:
+  kind: "Role"
+  name: "testing-role"
+  apiGroup: "rbac.authorization.k8s.io"
+---
+apiVersion: "rbac.authorization.k8s.io/v1beta1"
+kind: "RoleBinding"
+metadata:
+  name: "configgin-role-binding"
+  namespace: testing
+subjects:
+- kind: "ServiceAccount"
+  name: "testing-user"
+  namespace: testing
+roleRef:
+  kind: "Role"
+  name: "configgin-role"
+  apiGroup: "rbac.authorization.k8s.io"
+---
+apiVersion: "rbac.authorization.k8s.io/v1beta1"
+kind: "RoleBinding"
+metadata:
+  name: "secrets-role-binding"
+  namespace: testing
+subjects:
+- kind: "ServiceAccount"
+  name: "testing-user"
+  namespace: testing
+roleRef:
+  kind: "Role"
+  name: "secrets-role"
+  apiGroup: "rbac.authorization.k8s.io"
