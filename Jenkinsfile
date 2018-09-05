@@ -340,31 +340,12 @@ pipeline {
 	      println currentBuild
 	      println currentBuild.changeSets
 	      println currentBuild.changeSets.getClass()
-	      println currentBuild.rawBuild.changeSets
-	      println currentBuild.rawBuild.changeSets.getClass()
-	      println currentBuild.previousBuild
-	      println currentBuild.previousBuild.id
-	      println currentBuild.previousBuild.displayName
-	      println currentBuild.previousBuild.description
-	      println currentBuild.previousBuild.changeSets
-
-              println "Previous:"
-
-              for (set in currentBuild.previousBuild.changeSets) {
-                def entries = set.items
-                println entries
-                for (entry in entries) {
-                  for (file in entry.affectedFiles) {
-                    println file.path
-                    all_files << file.path
-                  }
-                }
-              }
 
               println "Current:"
 
               for (set in currentBuild.changeSets) {
                 def entries = set.items
+                println set
                 println entries
                 for (entry in entries) {
                   for (file in entry.affectedFiles) {
