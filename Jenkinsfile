@@ -17,6 +17,15 @@ String getBuildLog() {
     return currentBuild.rawBuild.getLogFile().getText()
 }
 
+boolean areIgnoredFiles(HashSet<String> changedFiles) {
+  HashSet<String> ignoredFiles = [
+    "CHANGELOG.md",
+    "README.md"
+  ]
+
+  return ignoredFiles.containsAll(changedFiles)
+}
+
 void setBuildStatus(String context, String status) {
     def description = null
     switch (status) {
@@ -335,6 +344,10 @@ pipeline {
         stage('check_for_changed_files') {
           steps {
             script {
+	      if (env.BRANCH_NAME == 'master') {
+	        return
+	      }
+
 	      def all_files = new HashSet<String>()
 
               for (set in currentBuild.changeSets) {
@@ -346,10 +359,9 @@ pipeline {
                 }
               }
 
-	      println "All files changed since last build:"
-	      println all_files
+	      echo "All files changed since last build: ${all_files}"
 
-              if (all_files.size() == 1 && (all_files[0] == 'CHANGELOG.md' || all_files[0] == 'Jenkinsfile')) {
+              if (areIgnoredFiles(all_files)) {
 	        currentBuild.rawBuild.result = hudson.model.Result.NOT_BUILT
 		echo "RESULT: ${currentBuild.rawBuild.result}"
                 throw new hudson.AbortException('Exiting pipeline early')
