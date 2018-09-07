@@ -335,7 +335,7 @@ pipeline {
         stage('check_for_changed_files') {
           steps {
             script {
-	      def all_files = new ArrayList()
+	      def all_files = new HashSet<String>()
 
 	      println currentBuild
 	      println currentBuild.changeSets
@@ -349,7 +349,6 @@ pipeline {
                 println entries
                 for (entry in entries) {
                   for (file in entry.affectedFiles) {
-                    println file.path
                     all_files << file.path
                   }
                 }
