@@ -97,7 +97,7 @@
 - Fixed issue during upgrade whereby USB did not receive updated password info
 - Patched monit_rsyslogd timestamp
 
-## [2.10.1] - 2018-05-17 
+## [2.10.1] - 2018-05-17
 
 ### Changed
 - Disabled optional consul role
