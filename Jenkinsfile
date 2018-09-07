@@ -23,6 +23,10 @@ boolean areIgnoredFiles(HashSet<String> changedFiles) {
     "README.md"
   ]
 
+  if (changedFiles.size() == 0) {
+    return false
+  }
+
   return ignoredFiles.containsAll(changedFiles)
 }
 
