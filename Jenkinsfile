@@ -363,14 +363,10 @@ pipeline {
               if (all_files.size() == 1 && all_files[0] == 'CHANGELOG.md') {
 	        currentBuild.result = hudson.model.Result.NOT_BUILT
 		echo "RESULT: ${currentBuild.result}"
-                error "Only CHANGELOG.md was modified"
+                return
               }
             }
           }
-        }
-
-        if (currentBuild.result == hudson.model.Result.NOT_BUILT) {
-          return
         }
 
         stage('tools') {
