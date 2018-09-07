@@ -348,8 +348,6 @@ pipeline {
 
 	      println "All files changed since last build:"
 	      println all_files
-	      println all_files.size()
-	      println all_files[0]
 
               if (all_files.size() == 1 && (all_files[0] == 'CHANGELOG.md' || all_files[0] == 'Jenkinsfile')) {
 	        currentBuild.rawBuild.result = hudson.model.Result.NOT_BUILT
