@@ -12,7 +12,8 @@
 - Bumped openSUSE stack
 
 ### Fixed
-- Reverted changes to database role rename based on issue with volumes during upgrade
+- Reverted changes to database role rename based on issue with volumes during
+  upgrade
 - CF version number in filename properly updated
 
 ## [2.12.3] - 2018-08-22
@@ -21,7 +22,8 @@
 - Allow HA for cc-clock and syslog-scheduler roles (2 default/3 max)
 
 ### Changed
-- Changed internal ports to avoid privileged ports in Kubernetes, though diego-cell and nfs-broker containers still rely on privileged access
+- Changed internal ports to avoid privileged ports in Kubernetes, though
+  diego-cell and nfs-broker containers still rely on privileged access
 - Bumped cf-deployment to 2.7.0
 - Bumped capi-release to 1.61.0
 - Bumped cf-syslog-drain-release to 7.0
@@ -92,7 +94,8 @@
 
 ### Fixed
 - Load balancer for Azure now usable
-- Updated role manifest validation to let secrets generator use KUBE_SERVICE_DOMAIN_SUFFIX without configuring HA itself
+- Updated role manifest validation to let secrets generator use
+  KUBE_SERVICE_DOMAIN_SUFFIX without configuring HA itself
 - SCF_LOG_PORT now set to default of 514
 - Fixed issue during upgrade whereby USB did not receive updated password info
 - Patched monit_rsyslogd timestamp
@@ -122,7 +125,9 @@
 ## [2.9.0] - 2018-05-07
 
 ### Added
-- The previous CF/UAA bumps should be considered minor updates, not patch releases, so we will bump this version in light of the changes in 2.8.1 and rely on this as part of future semver
+- The previous CF/UAA bumps should be considered minor updates, not patch
+  releases, so we will bump this version in light of the changes in 2.8.1 and
+  rely on this as part of future semver
 
 ### Changed
 - Bump PHP buildpack to v4.3.53.1 to address MS-ISAC ADVISORY NUMBER 2018-046
@@ -160,17 +165,18 @@
 ### Fixed
 - Addressed issue with how pods were indexed with invalid formatting
 
-## [2.7.3] - 2018-03-23
-### Added
+## [2.7.3] - 2018-03-23 ### Added
 - TCP routing ports are now configurable and can be templatized
 - CPU limits can now be set
-- Kubernetes annotations enabled so operators can specify which nodes particular roles can run on
+- Kubernetes annotations enabled so operators can specify which nodes
+  particular roles can run on
 
 ### Changed
 - Bumped fissile to 5.1.0+128
 
 ### Fixed
-- Changed how secrets are generated for rotation after 2.7.1 and 2.7.2 ran into problems during upgrades
+- Changed how secrets are generated for rotation after 2.7.1 and 2.7.2 ran into
+  problems during upgrades
 
 ## [2.7.2] - 2018-03-07
 ### Changed
@@ -183,7 +189,8 @@
 - More configurations for UAA logging level
 
 ### Changed
-- To address CVE-2018-1221, bumped CF Deployment to 1.15 and routing-release to 0.172.0
+- To address CVE-2018-1221, bumped CF Deployment to 1.15 and routing-release to
+  0.172.0
 - Bumped UAA to v55.0
 - Bumped SLE12 & openSUSE stacks
 - Bumped buildpack versions to latest
@@ -206,8 +213,8 @@
 
 ### Fixed
 - Fix duplicate buildpack ids when starting Cloud Foundry
-- Fix an issue in the vagrant box where compilation would fail due
-  to old versions of docker.
+- Fix an issue in the vagrant box where compilation would fail due to old
+  versions of docker.
 - Fix an issue where diego cell could not mount nfs in persi
 - Fix many problems reported with the syslog forwarding implementation
 
