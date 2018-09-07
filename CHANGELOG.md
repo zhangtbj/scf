@@ -122,7 +122,7 @@
 ## [2.9.0] - 2018-05-07
 
 ### Added
-- The previous CF/UAA bumps should be considered minor updates, not patch releases, so we will bump this verison in light of the changes in 2.8.1 and rely on this as part of future semver
+- The previous CF/UAA bumps should be considered minor updates, not patch releases, so we will bump this version in light of the changes in 2.8.1 and rely on this as part of future semver
 
 ### Changed
 - Bump PHP buildpack to v4.3.53.1 to address MS-ISAC ADVISORY NUMBER 2018-046
