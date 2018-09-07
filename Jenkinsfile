@@ -337,16 +337,8 @@ pipeline {
             script {
 	      def all_files = new HashSet<String>()
 
-	      println currentBuild
-	      println currentBuild.changeSets
-	      println currentBuild.changeSets.getClass()
-
-              println "Current:"
-
               for (set in currentBuild.changeSets) {
                 def entries = set.items
-                println set
-                println entries
                 for (entry in entries) {
                   for (file in entry.affectedFiles) {
                     all_files << file.path
