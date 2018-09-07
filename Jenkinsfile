@@ -352,8 +352,8 @@ pipeline {
 	      println all_files[0]
 
               if (all_files.size() == 1 && all_files[0] == 'CHANGELOG.md') {
-	        currentBuild.result = hudson.model.Result.NOT_BUILT
-		echo "RESULT: ${currentBuild.result}"
+	        currentBuild.rawBuild.result = hudson.model.Result.NOT_BUILT
+		echo "RESULT: ${currentBuild.rawBuild.result}"
                 return
               }
             }
