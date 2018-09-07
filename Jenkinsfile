@@ -355,6 +355,11 @@ pipeline {
                 }
               }
 
+	      println "All files changed since last build:"
+	      println all_files
+	      println all_files.length
+	      println all_files[0]
+
               if (all_files.length == 1 && all_files[0] == 'CHANGELOG.md') {
                 error "Only CHANGELOG.md was modified"
               }
