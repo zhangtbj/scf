@@ -158,7 +158,7 @@
 - Variable kube.external_ip now changed to kube.external_ips
 
 ### Fixed
-- Addressed issue with how pods were indexed with invalid formatting 
+- Addressed issue with how pods were indexed with invalid formatting
 
 ## [2.7.3] - 2018-03-23
 ### Added
