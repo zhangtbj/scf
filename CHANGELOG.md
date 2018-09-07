@@ -135,7 +135,7 @@
 ### Added
 - Enabled router.forwarded_client_cert variable for router
 - New syslog roles can have anti-affinity
-- mysql-proxy healthcheck timeouts are configurable 
+- mysql-proxy healthcheck timeouts are configurable
 
 ### Changed
 - Bumped UAA to v56.0
